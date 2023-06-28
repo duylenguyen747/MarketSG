@@ -7,96 +7,94 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using MarketSG.Model;
 using MarketSG.Model.Entities;
-using System.Runtime.CompilerServices;
-using AspNetCoreHero.ToastNotification.Abstractions;
 
 namespace MarketSG.Areas.Admin.Controllers
 {
     [Area("Admin")]
-    public class AdminRolesController : Controller
+    public class AdminAccountsController : Controller
     {
         private readonly MarketSgContext _context;
-        public INotyfService _notyfService;
 
-        public AdminRolesController(MarketSgContext context, INotyfService notyfService)
+        public AdminAccountsController(MarketSgContext context)
         {
             _context = context;
-            _notyfService = notyfService;
         }
 
-        // GET: Admin/AdminRoles
+        // GET: Admin/AdminAccounts
         public async Task<IActionResult> Index()
         {
-              return _context.Roles != null ? 
-                          View(await _context.Roles.ToListAsync()) :
-                          Problem("Entity set 'MarketSgContext.Roles'  is null.");
+            var marketSgContext = _context.Accounts.Include(a => a.Role);
+            return View(await marketSgContext.ToListAsync());
         }
 
-        // GET: Admin/AdminRoles/Details/5
+        // GET: Admin/AdminAccounts/Details/5
         public async Task<IActionResult> Details(int? id)
         {
-            if (id == null || _context.Roles == null)
+            if (id == null || _context.Accounts == null)
             {
                 return NotFound();
             }
 
-            var role = await _context.Roles
-                .FirstOrDefaultAsync(m => m.RoleId == id);
-            if (role == null)
+            var account = await _context.Accounts
+                .Include(a => a.Role)
+                .FirstOrDefaultAsync(m => m.AccountId == id);
+            if (account == null)
             {
                 return NotFound();
             }
 
-            return View(role);
+            return View(account);
         }
 
-        // GET: Admin/AdminRoles/Create
+        // GET: Admin/AdminAccounts/Create
         public IActionResult Create()
         {
+            ViewData["RoleId"] = new SelectList(_context.Roles, "RoleId", "RoleId");
             return View();
         }
 
-        // POST: Admin/AdminRoles/Create
+        // POST: Admin/AdminAccounts/Create
         // To protect from overposting attacks, enable the specific properties you want to bind to.
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("RoleId,RoleName,Description")] Role role)
+        public async Task<IActionResult> Create([Bind("AccountId,Phone,Email,Password,Salt,Active,FullName,RoleId,LastLogin,CreateDate")] Account account)
         {
             if (ModelState.IsValid)
             {
-                _context.Add(role);
+                _context.Add(account);
                 await _context.SaveChangesAsync();
-                _notyfService.Success("Tạo mới thành công");
                 return RedirectToAction(nameof(Index));
             }
-            return View(role);
+            ViewData["RoleId"] = new SelectList(_context.Roles, "RoleId", "RoleId", account.RoleId);
+            return View(account);
         }
 
-        // GET: Admin/AdminRoles/Edit/5
+        // GET: Admin/AdminAccounts/Edit/5
         public async Task<IActionResult> Edit(int? id)
         {
-            if (id == null || _context.Roles == null)
+            if (id == null || _context.Accounts == null)
             {
                 return NotFound();
             }
 
-            var role = await _context.Roles.FindAsync(id);
-            if (role == null)
+            var account = await _context.Accounts.FindAsync(id);
+            if (account == null)
             {
                 return NotFound();
             }
-            return View(role);
+            ViewData["RoleId"] = new SelectList(_context.Roles, "RoleId", "RoleId", account.RoleId);
+            return View(account);
         }
 
-        // POST: Admin/AdminRoles/Edit/5
+        // POST: Admin/AdminAccounts/Edit/5
         // To protect from overposting attacks, enable the specific properties you want to bind to.
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, [Bind("RoleId,RoleName,Description")] Role role)
+        public async Task<IActionResult> Edit(int id, [Bind("AccountId,Phone,Email,Password,Salt,Active,FullName,RoleId,LastLogin,CreateDate")] Account account)
         {
-            if (id != role.RoleId)
+            if (id != account.AccountId)
             {
                 return NotFound();
             }
@@ -105,15 +103,13 @@ namespace MarketSG.Areas.Admin.Controllers
             {
                 try
                 {
-                    _context.Update(role);
+                    _context.Update(account);
                     await _context.SaveChangesAsync();
-                    _notyfService.Success("Cập Nhật Thành Công");
                 }
                 catch (DbUpdateConcurrencyException)
                 {
-                    if (!RoleExists(role.RoleId))
+                    if (!AccountExists(account.AccountId))
                     {
-                        _notyfService.Success("Có Lỗi Sảy Ra");
                         return NotFound();
                     }
                     else
@@ -123,50 +119,51 @@ namespace MarketSG.Areas.Admin.Controllers
                 }
                 return RedirectToAction(nameof(Index));
             }
-            return View(role);
+            ViewData["RoleId"] = new SelectList(_context.Roles, "RoleId", "RoleId", account.RoleId);
+            return View(account);
         }
 
-        // GET: Admin/AdminRoles/Delete/5
+        // GET: Admin/AdminAccounts/Delete/5
         public async Task<IActionResult> Delete(int? id)
         {
-            if (id == null || _context.Roles == null)
+            if (id == null || _context.Accounts == null)
             {
                 return NotFound();
             }
 
-            var role = await _context.Roles
-                .FirstOrDefaultAsync(m => m.RoleId == id);
-            if (role == null)
+            var account = await _context.Accounts
+                .Include(a => a.Role)
+                .FirstOrDefaultAsync(m => m.AccountId == id);
+            if (account == null)
             {
                 return NotFound();
             }
 
-            return View(role);
+            return View(account);
         }
 
-        // POST: Admin/AdminRoles/Delete/5
+        // POST: Admin/AdminAccounts/Delete/5
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
-            if (_context.Roles == null)
+            if (_context.Accounts == null)
             {
-                return Problem("Entity set 'MarketSgContext.Roles'  is null.");
+                return Problem("Entity set 'MarketSgContext.Accounts'  is null.");
             }
-            var role = await _context.Roles.FindAsync(id);
-            if (role != null)
+            var account = await _context.Accounts.FindAsync(id);
+            if (account != null)
             {
-                _context.Roles.Remove(role);
+                _context.Accounts.Remove(account);
             }
             
             await _context.SaveChangesAsync();
-            _notyfService.Success("Xóa Thành Công");
             return RedirectToAction(nameof(Index));
         }
 
-        private bool RoleExists(int id)
+        private bool AccountExists(int id)
         {
-          return (_context.Roles?.Any(e => e.RoleId == id)).GetValueOrDefault();
+          return (_context.Accounts?.Any(e => e.AccountId == id)).GetValueOrDefault();
         }
     }
 }
